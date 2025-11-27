@@ -19,7 +19,15 @@ from config import (
     MIN_TIER_TO_SEND,
     REFRESH_PAIR_INTERVAL_HOURS,
 )
-from ipc_logic import analyse_symbol  # <-- sesuaikan dengan nama fungsi IPC kamu
+
+# --- Import IPC logic dengan cara fleksibel ---
+import ipc_logic
+try:
+    analyse_symbol_ipc = ipc_logic.analyse_symbol
+except AttributeError:
+    # fallback kalau namanya analyse_symbol_ipc
+    analyse_symbol_ipc = ipc_logic.analyse_symbol_ipc
+
 from ipc_scoring import score_ipc_signal, tier_from_score, should_send_tier
 from signal_builder import build_ipc_signal_message
 from storage import (
@@ -128,7 +136,7 @@ async def scan_loop(state) -> None:
                 await asyncio.sleep(60)
                 continue
 
-            # Jika scan belum diaktifkan, jangan connect WS terus-menerus
+            # Kalau scan belum aktif, jangan buang-buang WS connect
             if not state.scanning_enabled:
                 await asyncio.sleep(2)
                 continue
@@ -159,7 +167,7 @@ async def scan_loop(state) -> None:
                         print("Interval pair refresh tercapai → refresh & reconnect...")
                         break
 
-                    # Heartbeat check (no kline for some time)
+                    # Heartbeat check
                     now = time.time()
                     if now - last_tick_time > HEARTBEAT_TIMEOUT_SEC and not heartbeat_warned:
                         if TELEGRAM_ADMIN_ID:
@@ -206,7 +214,7 @@ async def scan_loop(state) -> None:
                         continue
 
                     # ANALISA IPC
-                    conditions, levels = analyse_symbol(symbol)
+                    conditions, levels = analyse_symbol_ipc(symbol)
                     if not conditions or not levels:
                         continue
 
@@ -243,7 +251,7 @@ async def scan_loop(state) -> None:
                     changed = False
                     for cid_str, user in subs.items():
                         chat_id = int(cid_str)
-                        # kalau mau admin tidak double, bisa skip
+                        # skip admin agar tidak dobel
                         if TELEGRAM_ADMIN_ID and chat_id == TELEGRAM_ADMIN_ID:
                             continue
                         if not can_receive_signal(user):
@@ -273,7 +281,7 @@ async def main():
     state.min_tier = MIN_TIER_TO_SEND
     state.last_update_id = None
 
-    # Pesan startup ke admin
+    # Pesan startup ke admin (mirip SMC intraday)
     if TELEGRAM_ADMIN_ID:
         send_message(
             TELEGRAM_ADMIN_ID,

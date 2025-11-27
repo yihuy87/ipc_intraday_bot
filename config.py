@@ -1,30 +1,41 @@
+# config.py
+
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# ============ TELEGRAM ============
+# === TELEGRAM ===
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
-MAIN_ADMIN_ID = int(os.getenv("MAIN_ADMIN_ID", "0") or "0")
-DEFAULT_CHAT_ID = int(os.getenv("DEFAULT_CHAT_ID", "0") or "0")
 
-# ============ BINANCE ============
-BINANCE_REST_URL = os.getenv("BINANCE_REST_URL", "https://api.binance.com")
-BINANCE_STREAM_URL = os.getenv("BINANCE_STREAM_URL", "wss://stream.binance.com:9443/stream")
+# Bisa pakai MAIN_ADMIN_ID atau TELEGRAM_ADMIN_ID (untuk kompatibel dengan SMC)
+_admin_id_raw = os.getenv("MAIN_ADMIN_ID") or os.getenv("TELEGRAM_ADMIN_ID") or "0"
+try:
+    TELEGRAM_ADMIN_ID = int(_admin_id_raw)
+except ValueError:
+    TELEGRAM_ADMIN_ID = 0
 
-KLINE_TIMEFRAME = os.getenv("KLINE_TIMEFRAME", "5m")
-LIMIT_KLINES = int(os.getenv("LIMIT_KLINES", "200"))
+TELEGRAM_ADMIN_USERNAME = os.getenv("TELEGRAM_ADMIN_USERNAME", "")
 
-MIN_VOLUME_USD = float(os.getenv("MIN_VOLUME_USD", "6000000"))
-REFRESH_PAIRS_EVERY_HOURS = int(os.getenv("REFRESH_PAIRS_EVERY_HOURS", "24"))
+# === BINANCE ===
+BINANCE_REST_URL = "https://api.binance.com"
+BINANCE_STREAM_URL = "wss://stream.binance.com:9443/stream"
 
-# ============ BOT SETTINGS ============
-FREE_SIGNAL_LIMIT = int(os.getenv("FREE_SIGNAL_LIMIT", "2"))
-VIP_DURATION_DAYS = int(os.getenv("VIP_DURATION_DAYS", "30"))
+# === FILTER PAIR & SCAN ===
 
-SIGNAL_COOLDOWN_MINUTES = int(os.getenv("SIGNAL_COOLDOWN_MINUTES", "5"))
-SIGNAL_COOLDOWN_SECONDS = SIGNAL_COOLDOWN_MINUTES * 60
+# minimal volume (USDT) di 24 jam supaya pair discan
+MIN_VOLUME_USDT = float(os.getenv("MIN_VOLUME_USDT", "6000000"))
 
-# ============ LOGGING ============
-ENABLE_LOGGING = os.getenv("ENABLE_LOGGING", "true").lower() == "true"
-LOG_FILE = os.getenv("LOG_FILE", "logs/runtime.log")
+# max jumlah pair USDT yang discan
+MAX_USDT_PAIRS = int(os.getenv("MAX_USDT_PAIRS", "500"))
+
+# interval refresh daftar pair (jam)
+REFRESH_PAIR_INTERVAL_HOURS = float(os.getenv("REFRESH_PAIR_INTERVAL_HOURS", "24"))
+
+# === IPC / SMC TIER & COOLDOWN ===
+
+# Tier minimum untuk kirim sinyal: "A+", "A", "B"
+MIN_TIER_TO_SEND = os.getenv("MIN_TIER_TO_SEND", "A")
+
+# Cooldown default antar sinyal per pair (detik)
+SIGNAL_COOLDOWN_SECONDS = int(os.getenv("SIGNAL_COOLDOWN_SECONDS", "900"))  # 15 menit by default
